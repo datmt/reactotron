@@ -1,0 +1,272 @@
+name: Build Portable Releases
+
+on:
+  push:
+    tags:
+      - 'reactotron-app@*'
+  workflow_dispatch:
+    inputs:
+      target_version:
+        description: 'Version to build (e.g., 3.7.8)'
+        required: true
+        default: ''
+
+jobs:
+  extract-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is_tag: ${{ steps.version.outputs.is_tag }}
+    steps:
+      - name: Extract version from tag or input
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            # Extract version from tag like 'reactotron-app@3.7.8'
+            VERSION=${GITHUB_REF#refs/tags/reactotron-app@}
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "is_tag=true" >> $GITHUB_OUTPUT
+            echo "Building version $VERSION from tag"
+          else
+            # Use input from workflow dispatch
+            VERSION="${{ github.event.inputs.target_version }}"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "is_tag=false" >> $GITHUB_OUTPUT
+            echo "Building version $VERSION from manual trigger"
+          fi
+
+  build-macos:
+    needs: extract-version
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'yarn'
+
+    - name: Install dependencies
+      run: |
+        yarn install --frozen-lockfile
+        yarn run postinstall
+
+    - name: Build all packages
+      run: yarn build
+
+    - name: Build macOS app (${{ matrix.arch }})
+      working-directory: apps/reactotron-app
+      env:
+        BUILD_TARGET: macos
+        BUILD_ARCH: ${{ matrix.arch }}
+        CSC_IDENTITY_AUTO_DISCOVERY: false
+      run: |
+        node scripts/build-portable.js
+
+    - name: Upload macOS artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: reactotron-${{ needs.extract-version.outputs.version }}-macos-${{ matrix.arch }}-portable
+        path: apps/reactotron-app/portable/
+        retention-days: 30
+
+  build-windows:
+    needs: extract-version
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'yarn'
+
+    - name: Install dependencies
+      run: |
+        yarn install --frozen-lockfile
+        yarn run postinstall
+
+    - name: Build all packages
+      run: yarn build
+
+    - name: Build Windows app
+      working-directory: apps/reactotron-app
+      env:
+        BUILD_TARGET: windows
+        BUILD_ARCH: x64
+      run: |
+        node scripts/build-portable.js
+
+    - name: Upload Windows artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: reactotron-${{ needs.extract-version.outputs.version }}-windows-portable
+        path: |
+          apps/reactotron-app/release-portable/
+          apps/reactotron-app/portable/
+        retention-days: 30
+
+  build-linux:
+    needs: extract-version
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [AppImage, deb, rpm]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'yarn'
+
+    - name: Install dependencies
+      run: |
+        yarn install --frozen-lockfile
+        yarn run postinstall
+
+    - name: Install Linux dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y rpm libarchive-tools
+
+    - name: Build all packages
+      run: yarn build
+
+    - name: Build Linux app (${{ matrix.target }})
+      working-directory: apps/reactotron-app
+      env:
+        BUILD_TARGET: linux
+        BUILD_ARCH: x64
+        LINUX_TARGET: ${{ matrix.target }}
+      run: |
+        node scripts/build-portable.js
+
+    - name: Upload Linux artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: reactotron-${{ needs.extract-version.outputs.version }}-linux-${{ matrix.target }}-portable
+        path: |
+          apps/reactotron-app/release-portable/
+          apps/reactotron-app/portable/
+        retention-days: 30
+
+  create-release:
+    needs:
+      - extract-version
+      - build-macos
+      - build-windows
+      - build-linux
+    runs-on: ubuntu-latest
+    if: needs.extract-version.outputs.is_tag == 'true'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts/
+
+    - name: Create release directory
+      run: |
+        mkdir -p release-assets
+        # Organize artifacts by platform
+        for platform in macos-x64 macos-arm64 windows linux-AppImage linux-deb linux-rpm; do
+          if [ -d "artifacts/reactotron-${{ needs.extract-version.outputs.version }}-$platform-portable" ]; then
+            cp -r artifacts/reactotron-${{ needs.extract-version.outputs.version }}-$platform-portable/* release-assets/
+          fi
+        done
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: reactotron-app@${{ needs.extract-version.outputs.version }}
+        name: Reactotron ${{ needs.extract-version.outputs.version }}
+        body: |
+          ## Reactotron Desktop App ${{ needs.extract-version.outputs.version }}
+
+          ### Portable Downloads
+
+          **macOS (Intel x64)**: Download the `macos-x64` directory and run `Reactotron.sh`
+          **macOS (Apple Silicon arm64)**: Download the `macos-arm64` directory and run `Reactotron.sh`
+          **Windows**: Download the portable executable from the windows directory
+          **Linux**: Choose your preferred format:
+          - AppImage: Universal portable format
+          - Debian: For Debian/Ubuntu-based systems
+          - RPM: For RedHat/Fedora-based systems
+
+          ### Installation Instructions
+
+          **macOS**: Extract the downloaded directory, then run the `Reactotron.sh` script
+          **Windows**: Run the downloaded `.exe` file
+          **Linux (AppImage)**: Make the file executable with `chmod +x Reactotron*.AppImage` and run it
+          **Linux (Debian/RPM)**: Install using your system's package manager
+
+          These builds are portable and don't require installation.
+        files: |
+          release-assets/**
+        draft: false
+        prerelease: ${{ contains(needs.extract-version.outputs.version, 'beta') || contains(needs.extract-version.outputs.version, 'alpha') }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  cleanup-artifacts:
+    needs: create-release
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - name: Cleanup old artifacts
+      uses: actions/github-script@v7
+      with:
+        script: |
+          // Clean up artifacts older than 7 days
+          const artifacts = await github.rest.actions.listArtifactsForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            per_page: 100
+          });
+
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+          for (const artifact of artifacts.data.artifacts) {
+            const createdDate = new Date(artifact.created_at);
+            if (createdDate < sevenDaysAgo && artifact.name.includes('reactotron') && artifact.name.includes('portable')) {
+              try {
+                await github.rest.actions.deleteArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id: artifact.id
+                });
+                console.log(`Deleted old artifact: ${artifact.name}`);
+              } catch (error) {
+                console.log(`Failed to delete artifact ${artifact.name}: ${error.message}`);
+              }
+            }
+          }
