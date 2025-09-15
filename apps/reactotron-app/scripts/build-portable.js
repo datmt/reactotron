@@ -19,31 +19,18 @@ console.log(`Building portable app for target: '${BUILD_TARGET}' (${BUILD_ARCH})
 // #endregion
 
 // #region Build configuration
-/** @type {Record<typeof BUILD_TARGET, string>} */
-const targetFlags = {
-  macos: `--macos --${BUILD_ARCH}`,
-  windows: `--windows --${BUILD_ARCH}`,
-  linux: `--linux --${BUILD_ARCH}`
-}
+let flags = `--config electron-builder-portable.config.js --publish never`
 
-/** @type {Record<typeof BUILD_TARGET, string[]>} */
-const specificTargets = {
-  macos: ['dir'],
-  windows: ['portable'],
-  linux: ['AppImage', 'deb', 'rpm']
-}
-
-let flags = `${targetFlags[BUILD_TARGET]} --config electron-builder-portable.config.js --publish never`
-
-// For macOS, we need to build specific targets
 if (BUILD_TARGET === 'macos') {
-  flags += ` --${specificTargets.macos[0]}`
+  flags += ` --macos --${BUILD_ARCH} --dir`
 } else if (BUILD_TARGET === 'windows') {
-  flags += ` --${specificTargets.windows[0]}`
+  flags += ` --windows --x64`
 } else if (BUILD_TARGET === 'linux') {
-  // For Linux, build all targets but we can specify one if needed
-  const linuxTarget = process.env.LINUX_TARGET || 'AppImage'
-  flags += ` --${linuxTarget}`
+  flags += ` --linux --x64`
+  // If a specific Linux target is specified, use it
+  if (process.env.LINUX_TARGET) {
+    flags += ` --${process.env.LINUX_TARGET}`
+  }
 }
 // #endregion
 
@@ -139,23 +126,25 @@ function createLinuxPortablePackage() {
 
   fs.mkdirSync(portableDir, { recursive: true })
 
-  // Copy AppImage if it exists
-  const appImages = fs.readdirSync(releaseDir).filter(file => file.endsWith('.AppImage'))
+  // Copy all build artifacts
+  if (fs.existsSync(releaseDir)) {
+    const files = fs.readdirSync(releaseDir)
 
-  appImages.forEach(appImage => {
-    require('child_process').execSync(`cp "${path.join(releaseDir, appImage)}" "${portableDir}/"`, { stdio: 'inherit' })
+    files.forEach(file => {
+      const srcPath = path.join(releaseDir, file)
+      const destPath = path.join(portableDir, file)
 
-    // Make AppImage executable
-    fs.chmodSync(path.join(portableDir, appImage), '755')
-  })
+      // Copy file if it's a build artifact
+      if (file.includes('reactotron') || file.endsWith('.AppImage') || file.endsWith('.deb') || file.endsWith('.rpm')) {
+        require('child_process').execSync(`cp "${srcPath}" "${destPath}"`, { stdio: 'inherit' })
 
-  // Copy other package formats
-  ['deb', 'rpm'].forEach(ext => {
-    const packages = fs.readdirSync(releaseDir).filter(file => file.endsWith(`.${ext}`))
-    packages.forEach(pkg => {
-      require('child_process').execSync(`cp "${path.join(releaseDir, pkg)}" "${portableDir}/"`, { stdio: 'inherit' })
+        // Make AppImage and executable files executable
+        if (file.endsWith('.AppImage') || !file.includes('.')) {
+          fs.chmodSync(destPath, '755')
+        }
+      }
     })
-  })
+  }
 
   // Create README for Linux
   const readme = `# Reactotron Portable - Linux
@@ -164,7 +153,7 @@ function createLinuxPortablePackage() {
 
 ### AppImage (Recommended - Universal)
 1. Download the .AppImage file
-2. Make it executable: \`chmod +x Reactotron*.AppImage\`
+2. Make it executable: \`chmod +x *.AppImage\`
 3. Run it: \`./Reactotron*.AppImage\`
 4. No installation required!
 

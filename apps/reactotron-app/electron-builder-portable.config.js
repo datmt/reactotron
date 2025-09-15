@@ -36,12 +36,7 @@ module.exports = {
 
   // Windows configuration for portable builds
   win: {
-    target: [
-      {
-        target: "portable",
-        arch: ["x64"]
-      }
-    ],
+    target: "portable",
     icon: "./icon.png",
     // Disable digital signing for portable builds
     signingHashAlgorithms: [],
@@ -51,20 +46,7 @@ module.exports = {
 
   // Linux configuration for portable builds
   linux: {
-    target: [
-      {
-        target: "AppImage",
-        arch: ["x64"]
-      },
-      {
-        target: "deb",
-        arch: ["x64"]
-      },
-      {
-        target: "rpm",
-        arch: ["x64"]
-      }
-    ],
+    target: ["AppImage", "deb", "rpm"],
     icon: "./icon.png",
     category: "Development",
     // Make it more portable
