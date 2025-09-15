@@ -1,9 +1,10 @@
 import React, { useCallback, useContext, useMemo } from "react"
-import { clipboard, shell } from "electron"
+import { clipboard, shell, dialog } from "electron"
 import fs from "fs"
 import os from "os"
 import path from "path"
 import debounce from "lodash.debounce"
+import { apiRequestToCurl } from "reactotron-core-ui/src/utils/api-to-curl"
 import {
   Header,
   filterCommands,
@@ -21,6 +22,7 @@ import {
   MdSwapVert,
   MdReorder,
   MdDownload,
+  MdApi,
 } from "react-icons/md"
 import { FaTimes } from "react-icons/fa"
 import styled from "styled-components"
@@ -130,6 +132,88 @@ function Timeline() {
     console.log(`Exported timeline log to ${downloadDir}`)
   }
 
+  function exportApiCalls() {
+    const apiCommands = commands.filter(cmd => cmd.type === 'api.response')
+
+    if (apiCommands.length === 0) {
+      dialog.showMessageBox({
+        type: 'info',
+        title: 'No API Calls',
+        message: 'No API calls found in the timeline to export.',
+        buttons: ['OK']
+      })
+      return
+    }
+
+    let exportContent = ''
+
+    apiCommands.forEach((command, index) => {
+      const { payload, date } = command
+      exportContent += `API Call #${index + 1}\n`
+      exportContent += `Timestamp: ${new Date(date).toISOString()}\n`
+      exportContent += `Method: ${payload.request.method}\n`
+      exportContent += `URL: ${payload.request.url}\n`
+      exportContent += `Status: ${payload.response.status}\n`
+      exportContent += `Duration: ${payload.duration}ms\n`
+
+      if (payload.request.headers) {
+        exportContent += `Request Headers:\n`
+        Object.entries(payload.request.headers).forEach(([key, value]) => {
+          exportContent += `  ${key}: ${value}\n`
+        })
+      }
+
+      if (payload.request.data) {
+        exportContent += `Request Body:\n`
+        try {
+          const parsedData = typeof payload.request.data === 'string'
+            ? JSON.parse(payload.request.data)
+            : payload.request.data
+          exportContent += `${JSON.stringify(parsedData, null, 2)}\n`
+        } catch (e) {
+          exportContent += `${payload.request.data}\n`
+        }
+      }
+
+      exportContent += `Response Headers:\n`
+      Object.entries(payload.response.headers).forEach(([key, value]) => {
+        exportContent += `  ${key}: ${value}\n`
+      })
+
+      exportContent += `Response Body:\n`
+      try {
+        const responseBody = typeof payload.response.body === 'string'
+          ? JSON.parse(payload.response.body)
+          : payload.response.body
+        exportContent += `${JSON.stringify(responseBody, null, 2)}\n`
+      } catch (e) {
+        exportContent += `${payload.response.body}\n`
+      }
+
+      exportContent += `cURL Command:\n`
+      exportContent += `${apiRequestToCurl(payload)}\n`
+
+      exportContent += '------\n\n'
+    })
+
+    // Show save dialog
+    dialog.showSaveDialog({
+      title: 'Export API Calls',
+      defaultPath: path.join(os.homedir(), 'Downloads', `api-calls-${Date.now()}.txt`),
+      filters: [
+        { name: 'Text Files', extensions: ['txt'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    }).then(({ filePath }) => {
+      if (filePath) {
+        fs.writeFileSync(filePath, exportContent, 'utf8')
+        console.log(`Exported ${apiCommands.length} API calls to ${filePath}`)
+      }
+    }).catch(err => {
+      console.error('Error saving file:', err)
+    })
+  }
+
   const { searchString, handleInputChange } = useDebouncedSearchInput(search, setSearch, 300)
 
   return (
@@ -143,6 +227,13 @@ function Timeline() {
             icon: MdDownload,
             onClick: () => {
               downloadLog()
+            },
+          },
+          {
+            tip: "Export API Calls",
+            icon: MdApi,
+            onClick: () => {
+              exportApiCalls()
             },
           },
           {

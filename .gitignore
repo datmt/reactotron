@@ -67,3 +67,5 @@ TODO
 !.yarn/sdks
 !.yarn/versions
 .nx/cache
+
+CLAUDE.md
