@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useMemo } from "react"
-import { clipboard, shell, dialog } from "electron"
+import { clipboard, shell, ipcRenderer } from "electron"
 import fs from "fs"
 import os from "os"
 import path from "path"
@@ -121,27 +121,41 @@ function Timeline() {
     shell.openExternal("https://docs.infinite.red/reactotron/quick-start/react-native/")
   }
 
-  function downloadLog() {
-    const homeDir = os.homedir()
-    const downloadDir = path.join(homeDir, "Downloads")
-    fs.writeFileSync(
-      path.resolve(downloadDir, `timeline-log-${Date.now()}.json`),
-      JSON.stringify(commands || []),
-      "utf8"
-    )
-    console.log(`Exported timeline log to ${downloadDir}`)
+  async function downloadLog() {
+    try {
+      // Show save dialog via IPC
+      const result = await ipcRenderer.invoke('show-save-dialog', {
+        title: 'Export Timeline Log',
+        defaultPath: path.join(os.homedir(), 'Downloads', `timeline-log-${Date.now()}.json`),
+        filters: [
+          { name: 'JSON Files', extensions: ['json'] },
+          { name: 'All Files', extensions: ['*'] }
+        ]
+      })
+
+      if (result.filePath) {
+        fs.writeFileSync(result.filePath, JSON.stringify(commands || [], null, 2), 'utf8')
+        console.log(`Exported timeline log to ${result.filePath}`)
+      }
+    } catch (err) {
+      console.error('Error showing save dialog:', err)
+    }
   }
 
-  function exportApiCalls() {
+  async function exportApiCalls() {
     const apiCommands = commands.filter(cmd => cmd.type === 'api.response')
 
     if (apiCommands.length === 0) {
-      dialog.showMessageBox({
-        type: 'info',
-        title: 'No API Calls',
-        message: 'No API calls found in the timeline to export.',
-        buttons: ['OK']
-      })
+      try {
+        await ipcRenderer.invoke('show-message-box', {
+          type: 'info',
+          title: 'No API Calls',
+          message: 'No API calls found in the timeline to export.',
+          buttons: ['OK']
+        })
+      } catch (err) {
+        console.error('Error showing message box:', err)
+      }
       return
     }
 
@@ -196,22 +210,24 @@ function Timeline() {
       exportContent += '------\n\n'
     })
 
-    // Show save dialog
-    dialog.showSaveDialog({
-      title: 'Export API Calls',
-      defaultPath: path.join(os.homedir(), 'Downloads', `api-calls-${Date.now()}.txt`),
-      filters: [
-        { name: 'Text Files', extensions: ['txt'] },
-        { name: 'All Files', extensions: ['*'] }
-      ]
-    }).then(({ filePath }) => {
-      if (filePath) {
-        fs.writeFileSync(filePath, exportContent, 'utf8')
-        console.log(`Exported ${apiCommands.length} API calls to ${filePath}`)
+    try {
+      // Show save dialog via IPC
+      const result = await ipcRenderer.invoke('show-save-dialog', {
+        title: 'Export API Calls',
+        defaultPath: path.join(os.homedir(), 'Downloads', `api-calls-${Date.now()}.txt`),
+        filters: [
+          { name: 'Text Files', extensions: ['txt'] },
+          { name: 'All Files', extensions: ['*'] }
+        ]
+      })
+
+      if (result.filePath) {
+        fs.writeFileSync(result.filePath, exportContent, 'utf8')
+        console.log(`Exported ${apiCommands.length} API calls to ${result.filePath}`)
       }
-    }).catch(err => {
-      console.error('Error saving file:', err)
-    })
+    } catch (err) {
+      console.error('Error showing save dialog:', err)
+    }
   }
 
   const { searchString, handleInputChange } = useDebouncedSearchInput(search, setSearch, 300)

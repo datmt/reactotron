@@ -4,6 +4,22 @@ import { type BrowserWindow, dialog, ipcMain } from "electron"
 // This function sets up numerous IPC commands for communicating with android devices.
 // It also watches for android devices being plugged in and unplugged.
 //
+// Setup IPC handlers for file dialogs
+export const setupDialogIPCCommands = (mainWindow: BrowserWindow) => {
+  ipcMain.handle('show-save-dialog', async (event, options) => {
+    const result = await dialog.showSaveDialog(mainWindow, options)
+    return result
+  })
+
+  ipcMain.handle('show-message-box', async (event, options) => {
+    const result = await dialog.showMessageBox(mainWindow, options)
+    return result
+  })
+}
+
+// This function sets up numerous IPC commands for communicating with android devices.
+// It also watches for android devices being plugged in and unplugged.
+//
 export const setupAndroidDeviceIPCCommands = (mainWindow: BrowserWindow) => {
   // Allows the main renderer to communicate with the main process and get a list of connected android devices.
   ipcMain.on("get-device-list", () => {

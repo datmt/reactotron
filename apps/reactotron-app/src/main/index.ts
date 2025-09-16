@@ -6,7 +6,7 @@ import { autoUpdater } from "electron-updater"
 import windowStateKeeper from "electron-window-state"
 
 import createMenu from "./menu"
-import { setupAndroidDeviceIPCCommands } from "./utils"
+import { setupAndroidDeviceIPCCommands, setupDialogIPCCommands } from "./utils"
 
 const isDevelopment = process.env.NODE_ENV !== "production"
 
@@ -104,4 +104,7 @@ app.on("ready", () => {
 
   // Sets up the electron IPC commands for android functionality on the Help screen.
   setupAndroidDeviceIPCCommands(mainWindow)
+
+  // Sets up the electron IPC commands for file dialogs.
+  setupDialogIPCCommands(mainWindow)
 })
