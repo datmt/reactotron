@@ -77,7 +77,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: reactotron-${{ needs.extract-version.outputs.version }}-macos-${{ matrix.arch }}-portable
-        path: apps/reactotron-app/portable/
+        path: apps/reactotron-app/portable/macos-${{ matrix.arch }}/
         retention-days: 30
 
   build-windows:
@@ -118,19 +118,61 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: reactotron-${{ needs.extract-version.outputs.version }}-windows-portable
-        path: |
-          apps/reactotron-app/release-portable/
-          apps/reactotron-app/portable/
+        path: apps/reactotron-app/portable/windows/
         retention-days: 30
 
-  # Linux builds removed due to build issues
-  # build-linux job commented out - can be re-enabled if needed
+  build-linux:
+    needs: extract-version
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'yarn'
+
+    - name: Install dependencies
+      run: |
+        yarn install --frozen-lockfile
+        yarn run postinstall
+
+    - name: Build all packages
+      run: yarn build
+
+    - name: Install Linux dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgtk-3-dev libnotify-dev libnss3-dev libxss1 libasound2-dev libxtst6 libxrandr2 libatk1.0-dev libgconf-2-4 libx11-xcb1 libxcb-dri3-0 libdrm2 libgbm1 libxshmfence1
+
+    - name: Build Linux AppImage
+      working-directory: apps/reactotron-app
+      env:
+        BUILD_TARGET: linux
+        BUILD_ARCH: x64
+      run: |
+        node scripts/build-portable.js
+
+    - name: Upload Linux artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: reactotron-${{ needs.extract-version.outputs.version }}-linux-portable
+        path: apps/reactotron-app/portable/linux/
+        retention-days: 30
 
   create-release:
     needs:
       - extract-version
       - build-macos
       - build-windows
+      - build-linux
     runs-on: ubuntu-latest
     if: needs.extract-version.outputs.is_tag == 'true'
     continue-on-error: true
@@ -152,7 +194,7 @@ jobs:
         echo "Checking for available artifacts..."
 
         # Organize artifacts by platform
-        for platform in macos-x64 macos-arm64 windows; do
+        for platform in macos-x64 macos-arm64 windows linux; do
           if [ -d "artifacts/reactotron-${{ needs.extract-version.outputs.version }}-$platform-portable" ]; then
             echo "Found $platform artifacts"
             cp -r artifacts/reactotron-${{ needs.extract-version.outputs.version }}-$platform-portable/* release-assets/
@@ -193,20 +235,22 @@ jobs:
           **macOS (Intel x64)**: Download the `macos-x64` directory and run `Reactotron.sh`
           **macOS (Apple Silicon arm64)**: Download the `macos-arm64` directory and run `Reactotron.sh`
           **Windows**: Download the portable executable from the windows directory
+          **Linux**: Download the AppImage from the linux directory
 
           ### Installation Instructions
 
           **macOS**: Extract the downloaded directory, then run the `Reactotron.sh` script
           **Windows**: Run the downloaded `.exe` file
+          **Linux**: Make the AppImage executable and run it: `chmod +x Reactotron.AppImage && ./Reactotron.AppImage`
 
           These builds are portable and don't require installation.
 
           ### Build Status
           - ✅ macOS builds: Successfully built and included
           - ✅ Windows builds: Successfully built and included
-          - ❌ Linux builds: Temporarily disabled due to build issues
+          - ✅ Linux builds: Successfully built and included
 
-          If you need Linux builds, please check back in future releases or build from source.
+          All platforms are now supported with portable builds!
         files: |
           release-assets/**
         draft: false
@@ -241,7 +285,7 @@ jobs:
           **Affected platforms:**
           - macOS (Intel x64, Apple Silicon)
           - Windows (x64)
-          - Linux (temporarily disabled)
+          - Linux (x64)
 
           To retry: push a new tag or manually trigger the workflow.`
           })
