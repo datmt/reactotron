@@ -128,7 +128,7 @@ function createWindowsPortablePackage() {
 
   fs.mkdirSync(portableDir, { recursive: true })
 
-  // Copy the portable executable and required files
+  // Copy only the essential files for portable distribution
   if (fs.existsSync(releaseDir)) {
     const files = fs.readdirSync(releaseDir)
 
@@ -136,8 +136,17 @@ function createWindowsPortablePackage() {
       const srcPath = path.join(releaseDir, file)
       const destPath = path.join(portableDir, file)
 
-      // Copy only the main executable and essential files
-      if (file.includes('reactotron') && (file.endsWith('.exe') || file.endsWith('.dll'))) {
+      // Only copy the main executable and essential DLLs
+      if (file.includes('reactotron') && file.endsWith('.exe')) {
+        require('child_process').execSync(`cp "${srcPath}" "${destPath}"`, { stdio: 'inherit' })
+        console.log(`✅ Copied ${file} to portable package`)
+      } else if (file.endsWith('.dll') && [
+        'ffmpeg.dll',
+        'd3dcompiler_47.dll',
+        'libEGL.dll',
+        'libGLESv2.dll',
+        'vulkan-1.dll'
+      ].includes(file)) {
         require('child_process').execSync(`cp "${srcPath}" "${destPath}"`, { stdio: 'inherit' })
         console.log(`✅ Copied ${file} to portable package`)
       }
@@ -150,24 +159,34 @@ function createWindowsPortablePackage() {
 ## Instructions
 
 ### Portable Executable
-1. Download the Reactotron.exe file
-2. Run it directly - no installation required!
-3. All settings and data are stored locally
+1. Download Reactotron.exe and the required DLL files
+2. Place all files in the same directory
+3. Run Reactotron.exe - no installation required!
+4. All settings and data are stored locally
 
 ## System Requirements
 - Windows 10 or later
-- Approximately 100MB of free disk space
+- Approximately 50MB of free disk space (much smaller than previous versions)
+
+## Included Files
+- Reactotron.exe (main application)
+- ffmpeg.dll (media playback support)
+- d3dcompiler_47.dll (Direct3D support)
+- libEGL.dll (OpenGL support)
+- libGLESv2.dll (OpenGL ES support)
+- vulkan-1.dll (Vulkan graphics support)
 
 ## Notes
 - This is a portable version that doesn't require installation
-- ffmpeg.dll is included for media playback capabilities (required by Electron)
+- Only essential files are included for a smaller download size
 - Updates must be downloaded manually
 - The application will create a local data directory for settings
 
 ## Troubleshooting
-If you see errors about missing ffmpeg.dll:
-1. Ensure ffmpeg.dll is in the same directory as Reactotron.exe
+If you see errors about missing DLLs:
+1. Ensure all DLL files are in the same directory as Reactotron.exe
 2. Run the application as Administrator if permission issues occur
+3. Make sure your antivirus isn't blocking the application
 
 Version: ${process.env.npm_package_version || 'unknown'}
 `
@@ -185,7 +204,7 @@ function createLinuxPortablePackage() {
 
   fs.mkdirSync(portableDir, { recursive: true })
 
-  // Copy all build artifacts
+  // Copy only the AppImage for true portability
   if (fs.existsSync(releaseDir)) {
     const files = fs.readdirSync(releaseDir)
 
@@ -193,14 +212,11 @@ function createLinuxPortablePackage() {
       const srcPath = path.join(releaseDir, file)
       const destPath = path.join(portableDir, file)
 
-      // Copy file if it's a build artifact
-      if (file.includes('reactotron') || file.endsWith('.AppImage') || file.endsWith('.deb') || file.endsWith('.rpm')) {
+      // Only copy AppImage files for clean portable distribution
+      if (file.endsWith('.AppImage')) {
         require('child_process').execSync(`cp "${srcPath}" "${destPath}"`, { stdio: 'inherit' })
-
-        // Make AppImage and executable files executable
-        if (file.endsWith('.AppImage') || !file.includes('.')) {
-          fs.chmodSync(destPath, '755')
-        }
+        fs.chmodSync(destPath, '755') // Make it executable
+        console.log(`✅ Copied ${file} to portable package`)
       }
     })
   }
@@ -210,18 +226,11 @@ function createLinuxPortablePackage() {
 
 ## Instructions
 
-### AppImage (Recommended - Universal)
-1. Download the .AppImage file
-2. Make it executable: \`chmod +x *.AppImage\`
-3. Run it: \`./Reactotron*.AppImage\`
+### AppImage (Universal Portable)
+1. Download the Reactotron.AppImage file
+2. Make it executable: \`chmod +x Reactotron.AppImage\`
+3. Run it: \`./Reactotron.AppImage\`
 4. No installation required!
-
-### Debian/Ubuntu (.deb)
-1. Install with: \`sudo dpkg -i reactotron*.deb\`
-2. If dependencies are missing: \`sudo apt-get install -f\`
-
-### RedHat/Fedora (.rpm)
-1. Install with: \`sudo rpm -i reactotron*.rpm\`
 
 ## System Requirements
 - Linux x86_64
@@ -229,9 +238,16 @@ function createLinuxPortablePackage() {
 - WebKitGTK+ 2.0 or later
 
 ## Notes
-- AppImage is the most portable option (no installation needed)
-- Package manager versions integrate with your system
-- Updates must be downloaded manually for portable versions
+- This is a single-file portable application
+- No installation or dependencies required
+- Updates must be downloaded manually
+- Much smaller download size than package manager versions
+
+## Troubleshooting
+If the AppImage doesn't run:
+1. Ensure it's executable: \`chmod +x Reactotron.AppImage\`
+2. Try running with: \`./Reactotron.AppImage\`
+3. Check your system meets the requirements above
 
 Version: ${process.env.npm_package_version || 'unknown'}
 `
