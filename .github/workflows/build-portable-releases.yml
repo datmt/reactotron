@@ -68,15 +68,18 @@ jobs:
       working-directory: apps/reactotron-app
       env:
         CSC_IDENTITY_AUTO_DISCOVERY: false
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         yarn build
-        npx electron-builder --mac --${{ matrix.arch }}
+        npx electron-builder --mac --${{ matrix.arch }} --publish never
 
     - name: Upload macOS artifact
       uses: actions/upload-artifact@v4
       with:
         name: reactotron-${{ needs.extract-version.outputs.version }}-macos-${{ matrix.arch }}
-        path: apps/reactotron-app/release/*.dmg
+        path: |
+          apps/reactotron-app/release/*.dmg
+          apps/reactotron-app/release/*.zip
         retention-days: 30
 
   build-windows:
@@ -107,15 +110,19 @@ jobs:
 
     - name: Build Windows app
       working-directory: apps/reactotron-app
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         yarn build
-        npx electron-builder --win
+        npx electron-builder --win --publish never
 
     - name: Upload Windows artifact
       uses: actions/upload-artifact@v4
       with:
         name: reactotron-${{ needs.extract-version.outputs.version }}-windows
-        path: apps/reactotron-app/release/*.exe
+        path: |
+          apps/reactotron-app/release/*.exe
+          apps/reactotron-app/release/*.msi
         retention-days: 30
 
   build-linux:
@@ -151,15 +158,21 @@ jobs:
 
     - name: Build Linux app
       working-directory: apps/reactotron-app
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         yarn build
-        npx electron-builder --linux
+        npx electron-builder --linux --publish never
 
     - name: Upload Linux artifact
       uses: actions/upload-artifact@v4
       with:
         name: reactotron-${{ needs.extract-version.outputs.version }}-linux
-        path: apps/reactotron-app/release/*.AppImage
+        path: |
+          apps/reactotron-app/release/*.AppImage
+          apps/reactotron-app/release/*.deb
+          apps/reactotron-app/release/*.rpm
+          apps/reactotron-app/release/*.snap
         retention-days: 30
 
   create-release:
