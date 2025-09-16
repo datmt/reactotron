@@ -66,20 +66,38 @@ try {
 
 // #region Platform-specific packaging
 function createMacOSPortablePackage(arch) {
-  console.log('Creating macOS portable package...')
+  console.log(`Creating macOS portable package for ${arch}...`)
 
   const portableDir = path.join(process.cwd(), 'portable', `macos-${arch}`)
   const releaseDir = path.join(process.cwd(), 'release-portable')
 
+  console.log(`Portable directory: ${portableDir}`)
+  console.log(`Release directory: ${releaseDir}`)
+
   // Create portable directory
   fs.mkdirSync(portableDir, { recursive: true })
+  console.log(`✅ Created portable directory: ${portableDir}`)
+
+  // List contents of release directory for debugging
+  if (fs.existsSync(releaseDir)) {
+    const releaseFiles = fs.readdirSync(releaseDir)
+    console.log(`Release directory contents: ${releaseFiles.join(', ')}`)
+  } else {
+    console.warn(`⚠️  Release directory not found: ${releaseDir}`)
+    return
+  }
 
   // Copy the app bundle
   const appName = arch === 'arm64' ? 'Reactotron-arm64.app' : 'Reactotron.app'
   const appPath = path.join(releaseDir, appName)
+  console.log(`Looking for app bundle at: ${appPath}`)
 
   if (fs.existsSync(appPath)) {
-    require('child_process').execSync(`cp -R "${appPath}" "${portableDir}/Reactotron.app"`, { stdio: 'inherit' })
+    console.log(`✅ Found app bundle: ${appName}`)
+
+    const targetAppPath = path.join(portableDir, 'Reactotron.app')
+    require('child_process').execSync(`cp -R "${appPath}" "${targetAppPath}"`, { stdio: 'inherit' })
+    console.log(`✅ Copied app bundle to: ${targetAppPath}`)
 
     // Create launcher script
     const launcherScript = `#!/bin/bash
@@ -88,8 +106,10 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 open "$DIR/Reactotron.app"
 `
 
-    fs.writeFileSync(path.join(portableDir, 'Reactotron.sh'), launcherScript)
-    fs.chmodSync(path.join(portableDir, 'Reactotron.sh'), '755')
+    const launcherPath = path.join(portableDir, 'Reactotron.sh')
+    fs.writeFileSync(launcherPath, launcherScript)
+    fs.chmodSync(launcherPath, '755')
+    console.log(`✅ Created launcher script: ${launcherPath}`)
 
     // Create README for portable version
     const readme = `# Reactotron Portable - macOS
@@ -112,11 +132,17 @@ open "$DIR/Reactotron.app"
 Version: ${process.env.npm_package_version || 'unknown'}
 `
 
-    fs.writeFileSync(path.join(portableDir, 'README.txt'), readme)
+    const readmePath = path.join(portableDir, 'README.txt')
+    fs.writeFileSync(readmePath, readme)
+    console.log(`✅ Created README: ${readmePath}`)
 
-    console.log(`✅ macOS portable package created at: ${portableDir}`)
+    // List final contents
+    const finalFiles = fs.readdirSync(portableDir)
+    console.log(`✅ Final portable package contents: ${finalFiles.join(', ')}`)
+    console.log(`✅ macOS portable package created successfully at: ${portableDir}`)
   } else {
     console.warn(`⚠️  App bundle not found at: ${appPath}`)
+    console.warn(`Available files in release directory: ${fs.readdirSync(releaseDir).join(', ')}`)
   }
 }
 

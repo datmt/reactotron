@@ -92,7 +92,9 @@ module.exports = {
       "!**/*.pdb",
       "!**/*.map",
       "!**/node_modules/**/*"
-    ]
+    ],
+    // AppImage specific configuration
+    artifactName: "Reactotron-${version}-${arch}.AppImage"
   },
 
   // General configuration for portable builds
