@@ -41,7 +41,17 @@ module.exports = {
     // Disable digital signing for portable builds
     signingHashAlgorithms: [],
     signDlls: false,
-    verifyUpdateCodeSignature: false
+    verifyUpdateCodeSignature: false,
+    // Exclude unnecessary files from portable build
+    fileAssociations: [],
+    // Ensure ffmpeg.dll is properly included
+    extraFiles: [
+      {
+        from: "../node_modules/electron/dist",
+        to: ".",
+        filter: ["ffmpeg.dll"]
+      }
+    ]
   },
 
   // Linux configuration for portable builds

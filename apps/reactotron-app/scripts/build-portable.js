@@ -52,6 +52,8 @@ try {
   // Create portable packages
   if (BUILD_TARGET === 'macos') {
     createMacOSPortablePackage(BUILD_ARCH)
+  } else if (BUILD_TARGET === 'windows') {
+    createWindowsPortablePackage()
   } else if (BUILD_TARGET === 'linux') {
     createLinuxPortablePackage()
   }
@@ -116,6 +118,63 @@ Version: ${process.env.npm_package_version || 'unknown'}
   } else {
     console.warn(`⚠️  App bundle not found at: ${appPath}`)
   }
+}
+
+function createWindowsPortablePackage() {
+  console.log('Creating Windows portable package...')
+
+  const portableDir = path.join(process.cwd(), 'portable', 'windows')
+  const releaseDir = path.join(process.cwd(), 'release-portable')
+
+  fs.mkdirSync(portableDir, { recursive: true })
+
+  // Copy the portable executable and required files
+  if (fs.existsSync(releaseDir)) {
+    const files = fs.readdirSync(releaseDir)
+
+    files.forEach(file => {
+      const srcPath = path.join(releaseDir, file)
+      const destPath = path.join(portableDir, file)
+
+      // Copy only the main executable and essential files
+      if (file.includes('reactotron') && (file.endsWith('.exe') || file.endsWith('.dll'))) {
+        require('child_process').execSync(`cp "${srcPath}" "${destPath}"`, { stdio: 'inherit' })
+        console.log(`✅ Copied ${file} to portable package`)
+      }
+    })
+  }
+
+  // Create README for Windows
+  const readme = `# Reactotron Portable - Windows
+
+## Instructions
+
+### Portable Executable
+1. Download the Reactotron.exe file
+2. Run it directly - no installation required!
+3. All settings and data are stored locally
+
+## System Requirements
+- Windows 10 or later
+- Approximately 100MB of free disk space
+
+## Notes
+- This is a portable version that doesn't require installation
+- ffmpeg.dll is included for media playback capabilities (required by Electron)
+- Updates must be downloaded manually
+- The application will create a local data directory for settings
+
+## Troubleshooting
+If you see errors about missing ffmpeg.dll:
+1. Ensure ffmpeg.dll is in the same directory as Reactotron.exe
+2. Run the application as Administrator if permission issues occur
+
+Version: ${process.env.npm_package_version || 'unknown'}
+`
+
+  fs.writeFileSync(path.join(portableDir, 'README.txt'), readme)
+
+  console.log(`✅ Windows portable package created at: ${portableDir}`)
 }
 
 function createLinuxPortablePackage() {
