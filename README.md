@@ -1,5 +1,9 @@
 # JAMLA - Just Another Mobile Logging App
 
+```sh
+# Build trigger command
+git tag jamla-app@3.7.15 && git push origin jamla-app@3.7.15
+```
 <div align="center">
 
 ![JAMLA Logo](./apps/reactotron-app/icon.png)
@@ -106,7 +110,3 @@ When reporting problems with Reactotron, use the provided example app located in
 ## Credits
 
 Reactotron is developed by [Infinite Red](https://infinite.red), [@rmevans9](https://github.com/rmevans9), and 70+ amazing contributors! Special thanks to [@skellock](https://github.com/skellock) for originally creating Reactotron while at Infinite Red.
-
-## Premium Support
-
-[Reactotron](https://infinite.red/reactotron), as an open source project, is free to use and always will be. [Infinite Red](https://infinite.red/) offers premium React and [React Native](https://infinite.red/react-native) mobile app design/development services. Email us at [hello@infinite.red](mailto:hello@infinite.red) to get in touch for more details.
