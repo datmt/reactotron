@@ -1,3 +1,6 @@
+This is a fork of the awesome reactotron. I'm a backend dev so I have little needs for the features. I just want to get the logs
+
+
 # ![Reactotron Logo](./docs/plugins/images/readme/Reactotron-128.png)
 
 [Join our Community Slack](http://community.infinite.red/)
