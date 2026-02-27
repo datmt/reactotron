@@ -4,7 +4,7 @@ import Server, { createServer } from "reactotron-core-server"
 import ReactotronBrain from "../../ReactotronBrain"
 import config from "../../config"
 
-import useStandalone, { Connection, ServerStatus } from "./useStandalone"
+import useStandalone, { Connection, ServerStatus, ActionTypes } from "./useStandalone"
 
 // TODO: Move up to better places like core somewhere!
 interface Context {
@@ -24,6 +24,8 @@ const StandaloneContext = React.createContext<Context>({
 const Provider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const reactotronServer = useRef<Server>(null)
 
+  const commandHistoryLimit = config.get("commandHistory") as number
+  
   const {
     serverStatus,
     connections,
@@ -38,7 +40,7 @@ const Provider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     connectionDisconnected,
     addCommandListener,
     portUnavailable,
-  } = useStandalone()
+  } = useStandalone(commandHistoryLimit)
 
   useEffect(() => {
     reactotronServer.current = createServer({ port: config.get("serverPort") as number })

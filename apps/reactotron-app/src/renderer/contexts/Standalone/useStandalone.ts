@@ -1,5 +1,6 @@
-import { useCallback, useReducer } from "react"
+import { useCallback, useReducer, useEffect } from "react"
 import { produce } from "immer"
+import { timelineLogsStore } from "../../config"
 
 export enum ActionTypes {
   ServerStarted = "SERVER_STARTED",
@@ -55,8 +56,9 @@ type Action =
   | { type: ActionTypes.AddCommandHandler; payload: (command: any) => void }
   | { type: ActionTypes.PortUnavailable; payload: undefined }
 
-export function reducer(state: State, action: Action) {
-  switch (action.type) {
+function createReducer(commandHistoryLimit = 500) {
+  return (state: State, action: Action) => {
+    switch (action.type) {
     case ActionTypes.ServerStarted:
       return produce(state, (draftState) => {
         draftState.serverStatus = "started"
@@ -74,9 +76,13 @@ export function reducer(state: State, action: Action) {
         if (existingConnection) {
           existingConnection.connected = true
         } else {
+          // Restore commands from persisted logs
+          const connectionLogs = timelineLogsStore.get("connectionLogs", {})
+          const restoredCommands = connectionLogs[action.payload.clientId] || []
+          
           existingConnection = {
             ...action.payload,
-            commands: [],
+            commands: restoredCommands,
             connected: true,
           }
 
@@ -145,6 +151,21 @@ export function reducer(state: State, action: Action) {
         }
 
         connection.commands = [action.payload, ...connection.commands]
+        // Trim to history limit
+        if (connection.commands.length > commandHistoryLimit) {
+          connection.commands = connection.commands.slice(0, commandHistoryLimit)
+        }
+        
+        // Persist command to disk
+        const connectionLogs = timelineLogsStore.get("connectionLogs", {})
+        const clientLogs = connectionLogs[action.payload.clientId] || []
+        clientLogs.unshift(action.payload)
+        // Trim persisted logs to same limit
+        if (clientLogs.length > commandHistoryLimit) {
+          clientLogs.length = commandHistoryLimit
+        }
+        connectionLogs[action.payload.clientId] = clientLogs
+        timelineLogsStore.set("connectionLogs", connectionLogs)
       })
     case ActionTypes.ClearConnectionCommands:
       return produce(state, (draftState) => {
@@ -157,6 +178,11 @@ export function reducer(state: State, action: Action) {
         if (!selectedConnection) return
 
         selectedConnection.commands = []
+        
+        // Also clear persisted logs for this connection
+        const connectionLogs = timelineLogsStore.get("connectionLogs", {})
+        delete connectionLogs[draftState.selectedClientId]
+        timelineLogsStore.set("connectionLogs", connectionLogs)
       })
     case ActionTypes.ChangeSelectedClientId:
       return produce(state, (draftState) => {
@@ -175,13 +201,16 @@ export function reducer(state: State, action: Action) {
         console.error("Port unavailable!")
         draftState.serverStatus = "portUnavailable"
       })
-    default:
-      return state
+      default:
+        return state
+    }
   }
 }
 
-function useStandalone() {
-  const [state, dispatch] = useReducer(reducer, {
+export const reducer = createReducer()
+
+function useStandalone(commandHistoryLimit = 500) {
+  const [state, dispatch] = useReducer(createReducer(commandHistoryLimit), {
     serverStatus: "stopped",
     connections: [],
     selectedClientId: null,
