@@ -22,13 +22,13 @@ let mainWindow: BrowserWindow | null
 
 function createMainWindow() {
   const mainWindowState = windowStateKeeper({
-    file: "reactotron-window-state.json",
+    file: "jamla-window-state.json",
     defaultWidth: 650,
     defaultHeight: 800,
   })
 
   const window = new BrowserWindow({
-    title: "Reactotron",
+    title: "JAMLA",
     x: mainWindowState.x,
     y: mainWindowState.y,
     width: mainWindowState.width,

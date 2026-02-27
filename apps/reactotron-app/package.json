@@ -1,23 +1,23 @@
 {
-  "name": "reactotron-app",
-  "productName": "Reactotron",
-  "version": "3.7.12",
-  "description": "Reactotron desktop mode engage!",
+  "name": "jamla-app",
+  "productName": "JAMLA",
+  "version": "1.0.0",
+  "description": "JAMLA - Just Another Mobile Logging App",
   "author": {
-    "name": "Infinite Red",
-    "email": "hello@infinite.red",
-    "url": "https://github.com/infinitered/reactotron"
+    "name": "Your Name",
+    "email": "your.email@example.com",
+    "url": "https://github.com/datmt/reactotron"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/infinitered/reactotron/issues"
+    "url": "https://github.com/datmt/reactotron/issues"
   },
-  "repository": "https://github.com/infinitered/reactotron",
+  "repository": "https://github.com/datmt/reactotron",
   "keywords": [
     "react",
     "react native"
   ],
-  "homepage": "https://github.com/infinitered/reactotron#readme",
+  "homepage": "https://github.com/datmt/reactotron#readme",
   "scripts": {
     "compile": "tsc",
     "start": "electron-webpack dev",
@@ -111,8 +111,8 @@
     "typescript": "^4.9.5"
   },
   "build": {
-    "productName": "Reactotron",
-    "appId": "com.reactotron.app",
+    "productName": "JAMLA",
+    "appId": "com.jamla.app",
     "files": [
       "src/dist/",
       "src/app.html",

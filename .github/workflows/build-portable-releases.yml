@@ -3,7 +3,7 @@ name: Build Portable Releases
 on:
   push:
     tags:
-      - 'reactotron-app@*'
+      - 'jamla-app@*'
   workflow_dispatch:
     inputs:
       target_version:
@@ -22,8 +22,8 @@ jobs:
         id: version
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
-            # Extract version from tag like 'reactotron-app@3.7.8'
-            VERSION=${GITHUB_REF#refs/tags/reactotron-app@}
+            # Extract version from tag like 'jamla-app@3.7.8'
+            VERSION=${GITHUB_REF#refs/tags/jamla-app@}
             echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "is_tag=true" >> $GITHUB_OUTPUT
             echo "Building version $VERSION from tag"
@@ -76,7 +76,7 @@ jobs:
     - name: Upload macOS artifact
       uses: actions/upload-artifact@v4
       with:
-        name: reactotron-${{ needs.extract-version.outputs.version }}-macos-${{ matrix.arch }}
+        name: jamla-${{ needs.extract-version.outputs.version }}-macos-${{ matrix.arch }}
         path: |
           apps/reactotron-app/release/*.dmg
           apps/reactotron-app/release/*.zip
@@ -119,7 +119,7 @@ jobs:
     - name: Upload Windows artifact
       uses: actions/upload-artifact@v4
       with:
-        name: reactotron-${{ needs.extract-version.outputs.version }}-windows
+        name: jamla-${{ needs.extract-version.outputs.version }}-windows
         path: |
           apps/reactotron-app/release/*.exe
           apps/reactotron-app/release/*.msi
@@ -167,7 +167,7 @@ jobs:
     - name: Upload Linux artifact
       uses: actions/upload-artifact@v4
       with:
-        name: reactotron-${{ needs.extract-version.outputs.version }}-linux
+        name: jamla-${{ needs.extract-version.outputs.version }}-linux
         path: |
           apps/reactotron-app/release/*.AppImage
           apps/reactotron-app/release/*.deb
@@ -203,9 +203,9 @@ jobs:
 
         # Organize artifacts by platform
         for platform in macos-x64 macos-arm64 windows linux; do
-          if [ -d "artifacts/reactotron-${{ needs.extract-version.outputs.version }}-$platform" ]; then
+          if [ -d "artifacts/jamla-${{ needs.extract-version.outputs.version }}-$platform" ]; then
             echo "Found $platform artifacts"
-            cp -r artifacts/reactotron-${{ needs.extract-version.outputs.version }}-$platform/* release-assets/
+            cp -r artifacts/jamla-${{ needs.extract-version.outputs.version }}-$platform/* release-assets/
           else
             echo "No artifacts found for $platform - this platform may have failed to build"
           fi
@@ -231,10 +231,10 @@ jobs:
       if: steps.check-artifacts.outputs.should_release == 'true'
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: reactotron-app@${{ needs.extract-version.outputs.version }}
-        name: Reactotron ${{ needs.extract-version.outputs.version }}
+        tag_name: jamla-app@${{ needs.extract-version.outputs.version }}
+        name: JAMLA ${{ needs.extract-version.outputs.version }}
         body: |
-          ## Reactotron Desktop App ${{ needs.extract-version.outputs.version }}
+          ## JAMLA Desktop App ${{ needs.extract-version.outputs.version }}
 
           ### Standard Installation Downloads
 
@@ -295,7 +295,7 @@ jobs:
           - Windows (x64)
           - Linux (x64)
 
-          To retry: push a new tag or manually trigger the workflow.`
+          To retry: push a new tag or manually trigger the workflow with \`jamla-app@X.X.X\` format.`
           })
 
   cleanup-artifacts:

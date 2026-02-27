@@ -7,19 +7,19 @@ const isDarwin = process.platform === "darwin"
 
 function buildFileMenu() {
   const fileMenu = {
-    label: isDarwin ? "Reactotron" : "&File",
+    label: isDarwin ? "JAMLA" : "&File",
     submenu: [],
   }
 
   if (isDarwin) {
     fileMenu.submenu.push(
       {
-        label: "About Reactotron",
+        label: "About JAMLA",
         selector: "orderFrontStandardAboutPanel:",
       } as any,
       { type: "separator" },
       {
-        label: "Hide Reactotron",
+        label: "Hide JAMLA",
         accelerator: "Command+H",
         selector: "hide:",
       },
@@ -151,7 +151,7 @@ function buildHelpMenu() {
       {
         label: "Visit on GitHub",
         click: () => {
-          shell.openExternal("https://github.com/infinitered/reactotron")
+          shell.openExternal("https://github.com/datmt/reactotron")
         },
       },
     ],

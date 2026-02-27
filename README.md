@@ -1,17 +1,30 @@
-This is a fork of the awesome reactotron. I'm a backend dev so I have little needs for the features. I just want to get the logs
+# JAMLA - Just Another Mobile Logging App
 
+<div align="center">
 
-# ![Reactotron Logo](./docs/plugins/images/readme/Reactotron-128.png)
+![JAMLA Logo](./apps/reactotron-app/icon.png)
 
-[Join our Community Slack](http://community.infinite.red/)
+**A lightweight, fork-focused mobile app debugger built for backend developers**
 
-## Introduction
+[📦 Download](#installation) • [🚀 Quick Start](#quick-start) • [📚 Documentation](#features) • [🔗 GitHub](https://github.com/datmt/reactotron)
 
-Reactotron is a powerful debugger for React and React Native applications. It provides an easy-to-use interface for developers to monitor their application's **state, network requests, and performance metrics** and can be used for any size of project, from small personal apps to large-scale enterprise applications. The OG debugger at [Infinite Red](https://infinite.red) that we use on a day-to-day basis to build client apps. Additionally, Reactotron is completely open source and free to use, making it an invaluable tool for developers at all levels of experience.
+</div>
 
-We recommend that you watch [Darin Wilson's](https://github.com/darinwilson) talk at [Chain React](https://chainreactconf.com/): [Chain React 2018: Debugging and Beyond with Reactotron](https://www.youtube.com/watch?v=UiPo9A9k7xc)!
+---
 
-## Reactotron Superpowers
+⚠️ **Note**: This is a customized fork of [Reactotron](https://github.com/infinitered/reactotron), tailored specifically for backend developers who need simplified mobile app logging and monitoring. If you're looking for the full-featured official Reactotron, please visit the [original repository](https://github.com/infinitered/reactotron).
+
+## What is JAMLA?
+
+JAMLA is a specialized fork of Reactotron designed for **backend developers** who need to quickly monitor and debug logs from mobile applications. It provides:
+
+- ✅ **Real-time Log Monitoring** - View all application logs in one place
+- ✅ **Persistent Timeline** - Logs survive app crashes
+- ✅ **Network Inspection** - Monitor API calls and responses
+- ✅ **Simplified UI** - Clean, backend-focused interface
+- ✅ **Cross-platform** - macOS, Windows, and Linux support
+
+## Features
 
 Use Reactotron to:
 
@@ -36,14 +49,19 @@ Reactotron on the left, demo React Native app on the right.
 
 ## Installation
 
-On the [Releases](https://github.com/infinitered/reactotron/releases?q=reactotron-app&expanded=true) page, navigate to the latest `reactotron-app` release to find the newest version of:
+Download the latest version from [Releases](https://github.com/datmt/reactotron/releases):
 
-- macOS (x64 & arm64)
-- Linux (32-bit & 64-bit)
-- Windows (32-bit & 64-bit)
+- **macOS**: Download `.dmg` and drag to Applications
+- **Windows**: Download `.exe` installer and run
+- **Linux**: Download `.AppImage`, make executable, and run
 
-## How to setup Reactotron in our app
+## Quick Start
 
+1. Download and install JAMLA from releases
+2. Connect your mobile app using Reactotron's client libraries
+3. View logs, network requests, and app state in real-time
+
+For setup instructions:
 - [**React Native**](https://docs.infinite.red/reactotron/quick-start/react-native/)
 - [**React**](https://docs.infinite.red/reactotron/quick-start/react-js/)
 
