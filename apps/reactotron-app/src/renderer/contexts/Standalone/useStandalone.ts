@@ -12,6 +12,7 @@ export enum ActionTypes {
   ChangeSelectedClientId = "CHANGE_SELECTED_CLIENT_ID",
   AddCommandHandler = "ADD_COMMAND_HANDLER",
   PortUnavailable = "PORT_UNAVAILABLE",
+  LoadSessionCommands = "LOAD_SESSION_COMMANDS",
 }
 
 export type ServerStatus = "stopped" | "portUnavailable" | "started"
@@ -55,6 +56,7 @@ type Action =
   | { type: ActionTypes.ClearConnectionCommands }
   | { type: ActionTypes.AddCommandHandler; payload: (command: any) => void }
   | { type: ActionTypes.PortUnavailable; payload: undefined }
+  | { type: ActionTypes.LoadSessionCommands; payload: any[] }
 
 function createReducer(commandHistoryLimit = 500) {
   return (state: State, action: Action) => {
@@ -201,11 +203,35 @@ function createReducer(commandHistoryLimit = 500) {
         console.error("Port unavailable!")
         draftState.serverStatus = "portUnavailable"
       })
+    case ActionTypes.LoadSessionCommands:
+      return produce(state, (draftState) => {
+        if (!draftState.selectedClientId) {
+          // If no connection is selected, create a virtual one for loaded commands
+          const virtualConnection: Connection = {
+            id: Date.now(),
+            clientId: `loaded-session-${Date.now()}`,
+            platform: "browser",
+            name: "Loaded Session",
+            commands: action.payload || [],
+            connected: true,
+          }
+          draftState.connections.push(virtualConnection)
+          draftState.selectedClientId = virtualConnection.clientId
+        } else {
+          // Load into the selected connection
+          const selectedConnection = draftState.connections.find(
+            (c) => c.clientId === draftState.selectedClientId
+          )
+          if (selectedConnection) {
+            selectedConnection.commands = action.payload || []
+          }
+        }
+      })
       default:
         return state
     }
-  }
-}
+    }
+    }
 
 export const reducer = createReducer()
 
@@ -269,6 +295,10 @@ function useStandalone(commandHistoryLimit = 500) {
     dispatch({ type: ActionTypes.PortUnavailable, payload: undefined })
   }, [])
 
+  const loadSessionCommands = useCallback((commands: any[]) => {
+    dispatch({ type: ActionTypes.LoadSessionCommands, payload: commands })
+  }, [])
+
   return {
     ...state,
     selectedConnection: state.connections.find((c) => c.clientId === state.selectedClientId),
@@ -281,6 +311,7 @@ function useStandalone(commandHistoryLimit = 500) {
     clearSelectedConnectionCommands,
     addCommandListener,
     portUnavailable,
+    loadSessionCommands,
   }
 }
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useMemo } from "react"
+import React, { useCallback, useContext, useMemo, useState, useEffect } from "react"
 import { clipboard, shell, ipcRenderer } from "electron"
 import fs from "fs"
 import os from "os"
@@ -23,9 +23,11 @@ import {
   MdReorder,
   MdDownload,
   MdApi,
+  MdHistory,
 } from "react-icons/md"
 import { FaTimes } from "react-icons/fa"
 import styled from "styled-components"
+import SessionBrowser from "./SessionBrowser"
 
 const Container = styled.div`
   display: flex;
@@ -100,6 +102,7 @@ function Timeline() {
     hiddenCommands,
     setHiddenCommands,
   } = useContext(TimelineContext)
+  const [isSessionBrowserOpen, setIsSessionBrowserOpen] = useState(false)
 
   let filteredCommands
   try {
@@ -141,6 +144,19 @@ function Timeline() {
       console.error('Error showing save dialog:', err)
     }
   }
+
+  const handleSessionLoaded = useCallback((loadedCommands: any[]) => {
+    if (!loadedCommands || loadedCommands.length === 0) {
+      console.warn("No commands to load from session")
+      return
+    }
+    // Access the loadSessionCommands function from the Standalone context (exposed globally)
+    const loadSession = (window as any).__reactotronLoadSession
+    if (loadSession && typeof loadSession === 'function') {
+      loadSession(loadedCommands)
+      console.log(`Loaded ${loadedCommands.length} commands from session`)
+    }
+  }, [])
 
   async function exportApiCalls() {
     const apiCommands = commands.filter(cmd => cmd.type === 'api.response')
@@ -238,6 +254,13 @@ function Timeline() {
         title="Timeline"
         isDraggable
         actions={[
+          {
+            tip: "Load Previous Session",
+            icon: MdHistory,
+            onClick: () => {
+              setIsSessionBrowserOpen(true)
+            },
+          },
           {
             tip: "Export Log",
             icon: MdDownload,
@@ -348,6 +371,13 @@ function Timeline() {
         }}
         hiddenCommands={hiddenCommands}
         setHiddenCommands={setHiddenCommands}
+      />
+      <SessionBrowser
+        isOpen={isSessionBrowserOpen}
+        onClose={() => {
+          setIsSessionBrowserOpen(false)
+        }}
+        onSessionLoaded={handleSessionLoaded}
       />
     </Container>
   )

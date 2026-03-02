@@ -1,5 +1,89 @@
 import childProcess from "child_process"
-import { type BrowserWindow, dialog, ipcMain } from "electron"
+import { type BrowserWindow, dialog, ipcMain, shell } from "electron"
+import { sessionLogger } from "./sessionLogger"
+
+// Setup IPC handlers for session logging
+export const setupSessionLoggerIPC = (mainWindow: BrowserWindow) => {
+  ipcMain.on("log-command", (_event, command: any) => {
+    sessionLogger.logCommand(command)
+  })
+
+  ipcMain.on("session-summary", (_event, summary: any) => {
+    sessionLogger.writeSummary(summary)
+  })
+
+  ipcMain.on("open-sessions-folder", () => {
+    shell.openPath(sessionLogger.getSessionDir())
+  })
+
+  ipcMain.handle("get-session-dir", () => {
+    return sessionLogger.getSessionDir()
+  })
+
+  ipcMain.handle("list-sessions", async () => {
+    const sessionDir = sessionLogger.getSessionDir().split("/").slice(0, -1).join("/")
+    try {
+      const fs = await import("fs").then((m) => m.promises)
+      const sessions = await fs.readdir(sessionDir)
+
+      const sessionData = await Promise.all(
+        sessions.map(async (session) => {
+          const sessionPath = `${sessionDir}/${session}`
+          const summaryPath = `${sessionPath}/summary.json`
+
+          try {
+            const summaryContent = await fs.readFile(summaryPath, "utf-8")
+            const summary = JSON.parse(summaryContent)
+            return {
+              name: session,
+              path: sessionPath,
+              ...summary,
+            }
+          } catch (e) {
+            // If no summary, return basic info
+            return {
+              name: session,
+              path: sessionPath,
+              sessionStart: session,
+              totalCommands: 0,
+              connections: [],
+            }
+          }
+        })
+      )
+
+      // Sort by date descending
+      return sessionData.sort((a, b) => {
+        const dateA = new Date(a.sessionStart || a.name).getTime()
+        const dateB = new Date(b.sessionStart || b.name).getTime()
+        return dateB - dateA
+      })
+    } catch (error) {
+      console.error("Error listing sessions:", error)
+      return []
+    }
+  })
+
+  ipcMain.handle("load-session-commands", async (_event, sessionPath: string) => {
+    try {
+      const fs = await import("fs").then((m) => m.promises)
+      const logFilePath = `${sessionPath}/commands.log`
+
+      const content = await fs.readFile(logFilePath, "utf-8")
+      const lines = content.split("\n").filter((line) => line.trim())
+
+      const commands = lines.map((line) => {
+        const parsed = JSON.parse(line)
+        return parsed.command || parsed
+      })
+
+      return commands
+    } catch (error) {
+      console.error("Error loading session commands:", error)
+      return []
+    }
+  })
+}
 
 // This function sets up numerous IPC commands for communicating with android devices.
 // It also watches for android devices being plugged in and unplugged.

@@ -6,7 +6,8 @@ import { autoUpdater } from "electron-updater"
 import windowStateKeeper from "electron-window-state"
 
 import createMenu from "./menu"
-import { setupAndroidDeviceIPCCommands, setupDialogIPCCommands } from "./utils"
+import { setupAndroidDeviceIPCCommands, setupDialogIPCCommands, setupSessionLoggerIPC } from "./utils"
+import { sessionLogger } from "./sessionLogger"
 
 const isDevelopment = process.env.NODE_ENV !== "production"
 
@@ -107,4 +108,14 @@ app.on("ready", () => {
 
   // Sets up the electron IPC commands for file dialogs.
   setupDialogIPCCommands(mainWindow)
+
+  // Sets up session logging IPC handlers
+  setupSessionLoggerIPC(mainWindow)
+})
+
+// Handle app quit to save session summary
+app.on("quit", () => {
+  if (mainWindow) {
+    mainWindow.webContents.send("request-session-summary")
+  }
 })
